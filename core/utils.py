@@ -8,7 +8,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.client import responses
-from ipaddress import AddressValueError, IPv4Address, IPv4Network
+from ipaddress import ip_address, AddressValueError, IPv4Address, IPv4Network
 
 import colored
 import coloredlogs
@@ -32,7 +32,7 @@ coloredlogs.install(level=None, logger=logger, fmt='%(message)s',
 
 
 class Helpers(object):
-    # ---[ Regex Parser ]-------------------------------
+    # ---[ Regex Parser ]---
     @staticmethod
     def regex(_type):
         # ref: http://data.iana.org/TLD/tlds-alpha-by-domain.txt
@@ -44,14 +44,7 @@ class Helpers(object):
             ip_net=r"(^(\d{1,3}\.){0,3}\d{1,3}/\d{1,2}$)",
             domain=r"([A-Za-z0-9]+(?:[\-|\.][A-Za-z0-9]+)*(?:\[\.\]|\.)(?:{}))".format(tlds),
             email=r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]{2,5}$)",
-            url=r"(http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)",
-            md5=r"(^[a-z0-9]{32}$)",
-            sha1=r"(^[a-z0-9]{40}$)",
-            sha224=r"(^[a-z0-9]{56}$))",
-            sha256=r"(^[a-z0-9]{64}$)",
-            sha512=r"(^[a-z0-9]{128}$)",
-            base64=r"(^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$)"
-            # option: base64=r"(^[-A-Za-z0-9+/=]{3,}$)"
+            url=r"(http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)"
         )
         try:
             pattern = re.compile(pattern[_type])
@@ -60,7 +53,7 @@ class Helpers(object):
             sys.exit(0)
         return pattern
 
-    # ---[ Common User-Agents ]-------------------------------
+    # ---[ Common User-Agents ]---
     @staticmethod
     def headers():
         ua_list = [
@@ -79,24 +72,28 @@ class Helpers(object):
         }
         return use_headers
 
-    # ---[ File Downloader ]-------------------------------
+    # ---[ File Downloader NO LONGER USED ]---
     @staticmethod
     def download_file(url):
         local_file = url.split('/')[-1]
         try:
-            req = requests.get(url, local_file, stream=True)
-            chunk_size = 1024
-            size = int(req.headers['content-length'])
-            if req.status_code == 403:
+            resp = requests.get(url, local_file, stream=True)
+            size = int(resp.headers['content-length'])
+            pbar = tqdm(iterable=resp.iter_content(chunk_size=1024),
+                        total=size,
+                        unit="B",
+                        unit_scale=True,
+                        unit_divisor=1024)
+            if resp.status_code == 403:
                 logger.info(responses[403])
                 sys.exit()
-            elif req.status_code == 200:
+            elif resp.status_code == 200:
                 with open(local_file, 'wb') as f:
-                    for data in tqdm(iterable=req.iter_content(chunk_size=chunk_size),
-                                     ncols=100, total=size / chunk_size, unit='KB'):
+                    for data in pbar:
                         f.write(data)
+                        pbar.update(len(data))
             else:
-                logger.info((req.status_code, responses[req.status_code]))
+                logger.info((resp.status_code, responses[resp.status_code]))
                 sys.exit()
         except requests.exceptions.Timeout:
             logger.notice(f"[timeout] {url}")
@@ -108,7 +105,7 @@ class Helpers(object):
             logger.critical(f"[critical] {err}")
 
 
-# ---[ Helper objects ]-------------------------------
+# ---[ Helper objects ]---
 helpers = Helpers()
 IP = helpers.regex(_type='ip_addr')
 NET = helpers.regex(_type='ip_net')
@@ -123,40 +120,46 @@ class Workers(object):
         self.DNSBL_MATCHES = 0
         self.BL_MATCHES = 0
 
-    # ---[ Query DNSBL Lists ]-------------------------------
+    # ---[ Query DNSBL Lists ]---
     def dnsbl_query(self, blacklist):
+        host = str(''.join(self.query))
+
+        # Return Codes
+        codes = ['127.0.0.2', '127.0.0.3', '127.0.0.4', '127.0.0.5',
+                 '127.0.0.6', '127.0.0.7', '127.0.0.9', '127.0.1.4',
+                 '127.0.1.5', '127.0.1.6', '127.0.0.10', '127.0.0.11',
+                 '127.0.0.39', '127.0.1.103', '127.0.1.104', '127.0.1.105',
+                 '127.0.1.106']
+
         try:
             resolver = dns.resolver.Resolver()
-            # Ref: https://stackoverflow.com/questions/24093888/python-asynchronous-reverse-dns-lookups
             resolver.timeout = 3
             resolver.lifetime = 3
             qry = ''
             if helpers.regex(_type='ip_addr').findall(self.query):
-                qry = '.'.join(reversed(str(self.query).split("."))) + "." + blacklist
+                qry = ip_address(host).reverse_pointer.strip('.in-addr.arpa') + "." + blacklist  # nopep8
             elif helpers.regex(_type='domain').findall(self.query):
-                qry = '.'.join(str(self.query).split(".")) + "." + blacklist
-            answers = resolver.query(qry, "A")
-            answer_txt = resolver.query(qry, 'TXT')
-            logger.success(f"\u2714 {self.query} --> {blacklist} {answers[0]} {answer_txt[0]}")
-            self.DNSBL_MATCHES += 1
-        except dns.resolver.NXDOMAIN:
-            pass  # skip non-results
-        except dns.resolver.Timeout:
-            logger.notice(f"[timeout] {blacklist}")
-        except dns.resolver.NoNameservers:
-            logger.warning(f"[no name servers] {blacklist}")
-        except dns.resolver.NoAnswer:
-            logger.error(f"[no answer] {blacklist}")
+                qry = '.'.join(str(host).split(".")) + "." + blacklist
+            answer = resolver.query(qry, "A")
+            if any(str(answer[0]) in s for s in codes):
+                logger.success(f"\u2716  {self.query} --> {blacklist}")  # nopep8
+                self.DNSBL_MATCHES += 1
+        except (dns.resolver.NXDOMAIN,
+                dns.resolver.Timeout,
+                dns.resolver.NoNameservers,
+                dns.resolver.NoAnswer):
+            pass
 
     def dnsbl_mapper(self):
         with ThreadPoolExecutor(max_workers=50) as executor:
-            dnsbl_map = {executor.submit(self.dnsbl_query, url): url for url in DNSBL_LISTS}
+            dnsbl_map = {executor.submit(
+                self.dnsbl_query, url): url for url in DNSBL_LISTS}
             for future in as_completed(dnsbl_map):
                 try:
                     future.result()
                     dnsbl_map[future]
                 except Exception as exc:
-                    logger.error(f"{dnsbl_map[future]} generated an exception: {exc}")
+                    logger.error(f"{dnsbl_map[future]} generated an exception: {exc}")  # nopep8
 
     def spamhaus_ipbl_worker(self):
         try:
@@ -170,18 +173,18 @@ class Workers(object):
         except Exception as exc:
             logger.error(exc)
 
-    # ---[ Query Blacklists ]-------------------------------
+    # ---[ Query Blacklists ]---
     def bl_mapper(self, query_type, list_type, list_name):
-       with ThreadPoolExecutor(max_workers=50) as executor:
-           mapper = {executor.submit(query_type, url): url for url in list_type}
-           for future in as_completed(mapper):
-               try:
-                   future.result()
-                   mapper[future]
-               except Exception as exc:
-                   logger.error(f"{mapper[future]} generated an exception: {exc}")
-           if self.BL_MATCHES == 0:
-               logger.info(f"[-] {self.query} is not listed in active {list_name}")
+        with ThreadPoolExecutor(max_workers=50) as executor:
+            mapper = {executor.submit(query_type, url): url for url in list_type}  # nopep8
+            for future in as_completed(mapper):
+                try:
+                    future.result()
+                    mapper[future]
+                except Exception as exc:
+                    logger.error(f"{mapper[future]} generated an exception: {exc}")  # nopep8
+            if self.BL_MATCHES == 0:
+                logger.info(f"[-] {self.query} is not listed in active {list_name}")  # nopep8
 
     def blacklist_worker(self, blacklist):
         try:
@@ -189,10 +192,8 @@ class Workers(object):
             req.encoding = 'utf-8'
             match = re.findall(self.query, req.text)
             if match:
-                logger.success(f"\u2714 {self.query} --> {blacklist}")
+                logger.success(f"\u2716  {self.query} --> {blacklist}")
                 self.BL_MATCHES += 1
-            else:
-                logger.notice(f"\u2718 {self.query} --> {blacklist}")
         except AddressValueError as err:
             logger.error(f"[error] {err}")
         except requests.exceptions.Timeout:
@@ -209,24 +210,24 @@ class Workers(object):
 
     def blacklist_dbl_worker(self):
         self.bl_mapper(query_type=self.blacklist_query,
-                           list_type=DOM_LISTS,
-                           list_name='Domain Blacklists')
+                       list_type=DOM_LISTS,
+                       list_name='Domain Blacklists')
 
     def blacklist_ipbl_worker(self):
         self.bl_mapper(query_type=self.blacklist_query,
-                           list_type=IP_LISTS,
-                           list_name='IP Blacklists')
+                       list_type=IP_LISTS,
+                       list_name='IP Blacklists')
 
-    # ----[ IP BLOCKS SECTION ]-------------------------------
+    # ----[ IP BLOCKS SECTION ]---
     def blacklist_ipblock_query(self, blacklist):
         self.blacklist_worker(blacklist)
-    
+
     def blacklist_netblock_worker(self):
         self.bl_mapper(query_type=self.blacklist_ipblock_query,
-                           list_type=IP_BLOCKS,
-                           list_name='NetBlock Blacklists')
+                       list_type=IP_BLOCKS,
+                       list_name='NetBlock Blacklists')
 
-    # ----[ WHOIS SECTION ]-------------------------------
+    # ----[ WHOIS SECTION ]---
     def whois_query(self, QRY):
         try:
             dns_resp = [rdata for rdata in dns.resolver.query(QRY, 'A')]
@@ -234,9 +235,9 @@ class Workers(object):
 
             # Check if cloudflare ip
             if self.cflare_results(dns_resp[0]):
-                logger.success("\u2714 Cloudflare IP: Yes")
+                logger.info("Cloudflare IP: Yes")
             else:
-                logger.notice("\u2718 Cloudflare IP: No")
+                logger.info("Cloudflare IP: No")
 
             w = whois.whois(QRY)
             if w.registered:
@@ -266,10 +267,10 @@ class Workers(object):
                 print("Email Address:", w.emails)
 
         except Exception as exc:
-            print(f"[-] Domain {QRY} does not appear to be registered domain.\n {exc}")
+            print(f"[-] Domain {QRY} does not appear to be registered domain.\n {exc}")  # nopep8
             time.sleep(1)  # prevents [WinError 10054]
 
-    # ----[ CLOUDFLARE CHECK SECTION ]-------------------------------
+    # ----[ CLOUDFLARE CHECK SECTION ]---
     @staticmethod
     def chk_cflare_list(QRY):
         for net in CFLARE_IPS:
@@ -280,7 +281,8 @@ class Workers(object):
         for ip in self.chk_cflare_list(QRY):
             return ip
 
-    def tc_query(self, qry):
+    @staticmethod
+    def tc_query(qry):
         try:
             cymru = f"{qry}.malware.hash.cymru.com"
             resolver = dns.resolver.Resolver()
@@ -288,11 +290,8 @@ class Workers(object):
             resolver.lifetime = 1
             answers = resolver.query(cymru, "A")
             logger.error(f"\u2718 malware.hash.cymru.com: MALICIOUS")
-        except dns.resolver.NXDOMAIN:
-            logger.notice(f"\u2718 malware.hash.cymru.com: Not Found")
-        except dns.resolver.Timeout:
-            logger.notice(f"[timeout] malware.hash.cymru.com")
-        except dns.resolver.NoNameservers:
-            logger.warning(f"[no name servers] malware.hash.cymru.com")
-        except dns.resolver.NoAnswer:
-            logger.error(f"[no answer] malware.hash.cymru.com")
+        except (dns.resolver.NXDOMAIN,
+                dns.resolver.Timeout,
+                dns.resolver.NoNameservers,
+                dns.resolver.NoAnswer):
+            pass

@@ -1,12 +1,8 @@
-#!/usr/bin/env python3
-
 import json
 import sys
 from http.client import responses
 
-import colored
 import requests
-import simplejson
 
 from core.utils import Helpers, logger
 
@@ -25,16 +21,15 @@ class VirusTotalChk(object):
         if api_key is None:
             raise Exception("Verify that you have provided your API key.")
 
-    # ---[ VirusTotal Connection ]-------------------------------
+    # ---[ VirusTotal Connection ]---
     def vt_connect(self, url):
         try:
             resp = requests.get(url, headers=self.headers, timeout=5)
             resp.encoding = 'utf-8'
             if resp.status_code == 401:
-                print("[error] Verify that you have provided a valid API key.")
-                sys.exit()
+                sys.exit("[error] Verify that you have provided a valid API key.")
             if resp.status_code != 200:
-                print(f"[error] {resp.status_code} {responses[resp.status_code]}")
+                print(f"[error] {resp.status_code} {responses[resp.status_code]}")  #nopep8
             else:
                 return resp.json()
         except requests.exceptions.Timeout:
@@ -62,10 +57,11 @@ class VirusTotalChk(object):
             for engine, result in results['last_analysis_results'].items():
                 if result['category'] == 'malicious':
                     bad += 1
-                    logger.error(f"\u2718 {engine}: {result['category'].upper()}")
+                    logger.error(
+                        f"\u2718 {engine}: {result['category'].upper()}")
                 else:
                     good += 1
             if bad == 0:
-                logger.success(f"\u2714 {good} engines deemed '{QRY}' as harmless\n")
+                logger.success(f"\u2714 {good} engines deemed '{QRY}' as harmless\n")  #nopep8
             else:
                 logger.info(f"{bad} engines deemed '{QRY}' as malicious\n")

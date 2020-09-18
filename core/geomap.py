@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import gzip
 import json
 import os
@@ -51,7 +49,7 @@ def geo_query_map(QRY):
         map_maxmind(QRY)
 
 
-# ---[ GeoLite File Check/Download ]-------------------------------
+# ---[ GeoLite File Check/Download ]---
 def geolite_check():
     if os.path.exists(gl_zipped):
         print(f"{gl_zipped} exists, unzipping...")
@@ -63,7 +61,8 @@ def geolite_check():
     if not os.path.exists(gl_file):
         print("-" * 80)
         logger.warning(f"[-] {gl_file} does not exist.")
-        geoip_download = input("\n[+] Would you like to download the GeoLite2-City file (yes/no)? ")
+        geoip_download = input(
+            "\n[+] Would you like to download the GeoLite2-City file (yes/no)? ")
         if geoip_download.lower() == 'yes':
             os.chdir(geomap_root)
             helpers.download_file(url)
@@ -73,7 +72,7 @@ def geolite_check():
             os.remove(gl_zipped)
 
 
-# ---[ Geolocate and Map IP Address ]-------------------------------
+# ---[ Geolocate and Map IP Address ]---
 # Ref: https://github.com/maxmind/GeoIP2-python
 def map_maxmind(QRY):
     try:

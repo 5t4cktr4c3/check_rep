@@ -265,7 +265,6 @@ DNSBL_LISTS = [
     'misc.dnsbl.sorbs.net',
     'mtawlrev.dnsbl.rediris.es',
     'multi.surbl.org',
-    'multi.uribl.com',
     'netbl.spameatingmonkey.net',
     'netblockbl.spamgrouper.to',
     'netscan.rbl.blockedservers.com',
