@@ -160,7 +160,7 @@ def main():
         workers.blacklist_netblock_worker()
 
     else:
-        print(Fore.YELLOW + "[!] Please enter a valid query -- Domain or IP address" + Style.RESET_ALL)  # nopep8
+        print(f'{Fore.YELLOW}[!] Please enter a valid query -- Domain or IP address{Style.RESET_ALL}')  # nopep8
         print("=" * 60, "\n")
         parser.print_help()
         parser.exit()
@@ -173,8 +173,8 @@ def main():
         logger.info(f"[-] {QRY} is not listed in any Blacklists\n")
     else:
         _QRY = Fore.YELLOW + QRY + Style.BRIGHT + Style.RESET_ALL
-        _DNSBL_MATCHES = Fore.WHITE + Back.RED + str(workers.DNSBL_MATCHES) + Style.BRIGHT + Style.RESET_ALL  # nopep8
-        _BL_TOTALS = Fore.WHITE + Back.RED + str(BL_TOTALS) + Style.BRIGHT + Style.RESET_ALL  # nopep8
+        _DNSBL_MATCHES = f'{Fore.WHITE}{Back.RED}{str(workers.DNSBL_MATCHES)}{Style.BRIGHT}{Style.RESET_ALL}'  # nopep8
+        _BL_TOTALS = f'{Fore.WHITE}{Back.RED}{str(BL_TOTALS)}{Style.BRIGHT}{Style.RESET_ALL}'  # nopep8
         logger.info(f"[>] {_QRY} is listed in {_DNSBL_MATCHES} DNSBL lists and {_BL_TOTALS} Blacklists\n")  # nopep8
 
     # ---[ Geo Map output ]-------------------------------
