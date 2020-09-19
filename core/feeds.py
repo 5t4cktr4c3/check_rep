@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Lists: https://github.com/firehol/blocklist-ipsets, https://firebog.net/, http://www.covert.io/threat-intelligence/
 
 # 12-Jan-2019: Removed dead RBLS -  ref: http://multirbl.valli.org/list/

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 import pathlib
 import random
@@ -8,16 +6,15 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.client import responses
-from ipaddress import ip_address, AddressValueError, IPv4Address, IPv4Network
+from ipaddress import AddressValueError, IPv4Address, IPv4Network, ip_address
 
-import colored
 import coloredlogs
 import dns.resolver
 import requests
 import verboselogs
-import whois
 from tqdm import tqdm
 
+import whois
 from core.feeds import *
 
 logger = verboselogs.VerboseLogger(__name__)
@@ -142,7 +139,7 @@ class Workers(object):
                 qry = '.'.join(str(host).split(".")) + "." + blacklist
             answer = resolver.query(qry, "A")
             if any(str(answer[0]) in s for s in codes):
-                logger.success(f"\u2716  {self.query} --> {blacklist}")  # nopep8
+                logger.warning(f"\u2716  {self.query} --> {blacklist}")  # nopep8
                 self.DNSBL_MATCHES += 1
         except (dns.resolver.NXDOMAIN,
                 dns.resolver.Timeout,
@@ -192,7 +189,7 @@ class Workers(object):
             req.encoding = 'utf-8'
             match = re.findall(self.query, req.text)
             if match:
-                logger.success(f"\u2716  {self.query} --> {blacklist}")
+                logger.warning(f"\u2716  {self.query} --> {blacklist}")
                 self.BL_MATCHES += 1
         except AddressValueError as err:
             logger.error(f"[error] {err}")
