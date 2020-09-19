@@ -9,7 +9,7 @@ import colored
 from colorama import Back, Fore, Style, init
 from ruamel.yaml import YAML
 
-from core.geomap import *
+from core.geomap import map_free_geo, multi_map
 from core.utils import DOMAIN, EMAIL, IP, NET, URL, Workers, logger
 from core.vt_check import VirusTotalChk
 
