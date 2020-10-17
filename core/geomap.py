@@ -103,9 +103,7 @@ def map_free_geo(QRY):
             data = json.loads(req.content.decode('utf-8'))
             lat = data['latitude']
             lon = data['longitude']
-            popup = Popup(QRY)
-
-            Marker([lat, lon], popup=popup).add_to(ip_map)
+            Marker([lat, lon], popup=QRY).add_to(ip_map)
             ip_map.save(ip_map_file)
         else:
             req.raise_for_status()
@@ -114,7 +112,9 @@ def map_free_geo(QRY):
 
 
 def multi_map(input_file):
+    global addr
     os.chdir(geomap_root)
+    
     # Check if Geolite file exists
     geolite_check()
 
@@ -131,9 +131,7 @@ def multi_map(input_file):
                     logger.success(f"[+] Mapping {addr}")
                     lat = response.location.latitude
                     lon = response.location.longitude
-                    popup = Popup(addr)
-
-                    Marker([lat, lon], popup=popup).add_to(ip_map)
+                    Marker([lat, lon], popup=addr).add_to(ip_map)
                     ip_map.save('multi_map.html')
         except ValueError as err:
             print(f'[error] {err}')
