@@ -6,8 +6,9 @@ IP_LISTS = [
     'http://antispam.imp.ch/spamlist',  # Outdated
     'http://danger.rulez.sk/projects/bruteforceblocker/blist.php',
     'http://malc0de.com/bl/IP_Blacklist.txt',
-    'https://mirai.security.gives/data/ip_list.txt',
+    # 'https://mirai.security.gives/data/ip_list.txt', # No longer active
     'http://osint.bambenekconsulting.com/feeds/c2-ipmasterlist.txt',
+    'https://feodotracker.abuse.ch/downloads/ipblocklist.csv',
     'http://reputation.alienvault.com/reputation.data',
     # 'http://torstatus.blutmagie.de/ip_list_exit.php/Tor_ip_list_EXIT.csv',  # No longer active
     'http://www.badips.com/get/list/apache-wordpress/0?age=1000h',

@@ -107,7 +107,7 @@ def main():
         except FileNotFoundError:
             logger.info("[-] Geolocation map file was not created or does not exist.")  # nopep8
         else:
-            logger.info(f"[>] Geolocation map file saved to: {multi_map_file}")
+            logger.info(f"> Geolocation map file saved to: {multi_map_file}")
         sys.exit(1)
 
     if args.vt:
@@ -175,7 +175,7 @@ def main():
         _QRY = Fore.YELLOW + QRY + Style.BRIGHT + Style.RESET_ALL
         _DNSBL_MATCHES = f'{Fore.WHITE}{Back.RED}{str(workers.DNSBL_MATCHES)}{Style.BRIGHT}{Style.RESET_ALL}'  # nopep8
         _BL_TOTALS = f'{Fore.WHITE}{Back.RED}{str(BL_TOTALS)}{Style.BRIGHT}{Style.RESET_ALL}'  # nopep8
-        logger.info(f"[>] {_QRY} is listed in {_DNSBL_MATCHES} DNSBL lists and {_BL_TOTALS} Blacklists\n")  # nopep8
+        logger.info(f"> {_QRY} is listed in {_DNSBL_MATCHES} DNSBL lists and {_BL_TOTALS} Blacklists\n")  # nopep8
 
     # ---[ Geo Map output ]-------------------------------
     if args.fg or args.mx:
@@ -187,7 +187,7 @@ def main():
             logger.warning("[-] Geolocation map file was not created/does not exist.\n")  # nopep8
         else:
             ip_map_timestamp = datetime.fromtimestamp(os.path.getctime(ip_map_file))  # nopep8
-            logger.info(f"[>] Geolocation map file created: {ip_map_file} [{ip_map_timestamp.strftime(time_format)}]\n")  # nopep8
+            logger.info(f"> Geolocation map file created: {ip_map_file} [{ip_map_timestamp.strftime(time_format)}]\n")  # nopep8
 
 
 if __name__ == "__main__":
